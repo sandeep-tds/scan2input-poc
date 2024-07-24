@@ -1,0 +1,17 @@
+   ______________________________
+ / \                             \.
+|   | This log file was created  |.
+ \_ | by the Wizard, it contains |.
+    | the configuration data     |.
+    | used for the application   |.
+    | generation.                |.
+    |                            |.
+    | It shouldn't be edited     |.
+    | manually, changing it      |.
+    | won't affect the generated |.
+    | sample.                    |.
+    |   _________________________|___
+    |  /                            /.
+    \_/____________________________/.
+
+{"projectName":"Scan 2 Input PoC","projectLocation":"/Users/I567828/Desktop/Scan2InputPoCAndroid","projectNamespace":"com.sap.scan2input","accountName":"CA10 Dev","serviceURL":"https://dev-lq7z34iq-dev-tds-anydox-app.cfapps.ca10.hana.ondemand.com/","serverURL":"https://mobile-service-cockpit-web.cfapps.ca10.hana.ondemand.com/cockpit/v1/org/PM_Mobile_dev-lq7z34iq/space/dev/","applicationID":"<Your-App-ID>","applicationSecurityConfig":"OAUTH","jsonPath":null,"senderID":null,"serverKey":null,"isLogEnabled":true,"isLogUploadEnabled":true,"SAPSDKLocation":"MAVEN_LOCAL","activationType":"appConfigFile","generateJavaCode":false,"generateOnlineApp":true,"isUsageIncluded":false,"isCrashReportIncluded":false,"isMultipleUserMode":false,"isViewBaseFramework":false}

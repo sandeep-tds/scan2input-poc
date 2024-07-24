@@ -1,0 +1,18 @@
+{
+  "__comment": "When modifying this file, you need to reset or reinstall all current client installations",
+  "auth": [{
+      "type": "oauth2",
+      "config": {
+        "oauth2.clients": [
+
+          { "clientID": "<Your-Client-ID>", "redirectURL": "<Your-Redirect-URL>", "grantType": "authorization_code" }
+        ],
+        "oauth2.tokenEndpoint": "<Your-Token-API>",
+        "oauth2.authorizationEndpoint": "<Your-Authorization-API>"
+      },
+      "requireOtp": false
+    }],
+  "ServiceUrl" : "<Your-Server-API>",
+  "appID": "<Your-App-ID>",
+  "multiUser": false
+}

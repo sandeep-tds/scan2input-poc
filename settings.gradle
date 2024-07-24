@@ -1,0 +1,2 @@
+rootProject.name = "Scan 2 Input PoC"
+include ':app'
