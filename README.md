@@ -4,7 +4,7 @@
 This project is provided as-is and is not intended as an official recommendation from SAP. It serves as a proof of concept to demonstrate the integration of SAP Build Code and SAP Document Information Extraction Service.
 
 ## Context Providing Blog
-This repository is part of a blog post that provides a detailed explanation of the scenario and solution. You can read the full blog post [here]([link-to-blog](https://community.sap.com/t5/technology-blogs-by-sap/transform-your-phone-s-camera-into-a-next-gen-input-tool-with-sap-build/ba-p/13770867)).
+This repository is part of a blog post that provides a detailed explanation of the scenario and solution. You can read the full blog post [here](https://community.sap.com/t5/technology-blogs-by-sap/transform-your-phone-s-camera-into-a-next-gen-input-tool-with-sap-build/ba-p/13770867).
 
 ## Project Changes Required
 
