@@ -9,22 +9,24 @@ This repository is part of a blog post that provides a detailed explanation of t
 ## Project Changes Required
 
 ### Change Your App Configuration ID
-In the following files, change <Your-App-ID> to app configuration ID you defined while creating an app config on SAP Mobile Services Cockpit.
+In the following files, replace `<Your-App-ID>` with the app configuration ID you defined while creating the app configuration in SAP Mobile Services Cockpit:
 
-1. AndroidManifest.xml
-2. sap_mobile_services.json
+1. `AndroidManifest.xml`
+2. `sap_mobile_services.json`
 
 ### Update Security Configuration
+From SAP Mobile Services → Your App → Security, copy the following values into the `sap_mobile_services.json` file:
 
-From SAP Mobile Services &rarr; Your App &rarr; Security copy the following values into the sap_mobile_services.json file
-
-1. clientID
-2. redirectURL
-3. oauth2.tokenEndpoint
-4. oauth2.authorizationEndpoint 
+1. `clientID`
+2. `redirectURL`
+3. `oauth2.tokenEndpoint`
+4. `oauth2.authorizationEndpoint`
 
 ### Update Service URL
+From SAP Mobile Services → Your App → APIs, copy the `ServiceUrl` value into the `sap_mobile_services.json` file.
 
-From SAP Mobile Services &rarr; Your App &rarr; APIs copy the following values into the sap_mobile_services.json file
+### Update API References to AnyDox Service
+In the `SAPServiceManager.kt` file, make the following changes:
 
-1. ServiceUrl
+1. Change `CONNECTION_ID_DOX_DESTINATION` if you used a different name when creating the destination for SAP Document Information Extraction Service on SAP Mobile Services.
+2. Fetch the Schema ID using [this API](https://help.sap.com/docs/document-information-extraction/document-information-extraction/get-schema?locale=en-US) and paste it as the value for `val schemaID` in the `uploadToDoxService` function.

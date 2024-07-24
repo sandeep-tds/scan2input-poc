@@ -13,9 +13,14 @@ import com.sap.scan2input.ui.odata.data.EntityPageSource
 import com.sap.scan2input.ui.odata.screens.OperationResult
 import com.sap.scan2input.ui.odata.screens.FieldUIState
 import com.sap.cloud.mobile.kotlin.odata.*
+import com.sap.scan2input.service.SAPServiceManager
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import org.json.JSONException
+import org.json.JSONObject
+import java.io.File
 
 const val PAGE_SIZE: Int = 20
 
@@ -63,6 +68,8 @@ abstract class ODataViewModel(
 
     private val _odataUIState = MutableStateFlow(ODataUIState())
     val odataUIState = _odataUIState.asStateFlow()
+
+    private val _documentStatus = MutableStateFlow("PENDING")
 
     private val pagingSourceFactory =
         InvalidatingPagingSourceFactory {
@@ -155,7 +162,10 @@ abstract class ODataViewModel(
         }
     }
 
-    protected fun populateFiledStates(masterEntity: EntityValue, isEdit: Boolean): List<FieldUIState> {
+    protected fun populateFiledStates(
+        masterEntity: EntityValue,
+        isEdit: Boolean
+    ): List<FieldUIState> {
         return masterEntity.let { entity ->
             entity.entityType.propertyList.toList()
                 .filter {
@@ -163,14 +173,32 @@ abstract class ODataViewModel(
                     val isComputed = it.annotations.has(COMPUTED_ANNOTATION_TERM)
                     // filter navigation, complex type, computed property, and primary key field in edit mode
                     it !is NavigationProperty && it.dataType.isBasic && !isComputed
-                        && if (isEdit) !it.isKey else true
-                }.map {
+                            && if (isEdit) !it.isKey else true
+                }.map{
                     FieldUIState(
                         entity.getOptionalValue(it)?.toString() ?: "",
                         it,
                         false
                     )
                 }.map { validateFieldState(it, it.value) } //perform init validation
+        }
+    }
+
+    private fun onCreate(doxResponse: String?) {
+        _odataUIState.update {
+            val emptyEntity = entityType.objectFactory!!.create() as EntityValue
+            entitySet?.also { entitySet -> emptyEntity.entitySet = entitySet }
+
+            // Pre-fill the entity and get the updated entity
+            val entityWithData = ScannedDocumentParser.preFillEntity(emptyEntity, doxResponse)
+
+            it.copy(
+                entityOperationType = EntityOperationType.CREATE,
+                masterEntity = entityWithData, // Use the pre-filled entity
+                isEntityFocused = true,
+                selectedItems = listOf(),
+                editorFiledStates = populateFiledStates(entityWithData, false)
+            )
         }
     }
 
@@ -302,6 +330,53 @@ abstract class ODataViewModel(
         }
     }
 
+    fun sendDocToDoxService(capturedImage: File?) {
+        SAPServiceManager.uploadDocToDoxService(capturedImage) { result ->
+            if (result != null) {
+                try {
+                    val jsonObject = JSONObject(result)
+                    val documentID = jsonObject.getString("id")
+                    createUsingScannedData(documentID) // Start checking the status and trigger onCreate
+                } catch (e: JSONException) {
+                    Log.e("API Response", "Error parsing JSON: ${e.message}")
+                }
+            } else {
+                // Handle upload error
+            }
+        }
+    }
+
+    private fun createUsingScannedData(documentID: String) {
+        viewModelScope.launch {
+            var status = "PENDING"
+            var result: String? = null
+
+            while (status != "DONE") {
+                SAPServiceManager.getDocWithIdFromDoxService(documentID) { response ->
+                    result= response
+                    if (response != null) {
+                        try {
+                            val jsonObject = JSONObject(response)
+                            status = jsonObject.getString("status")
+                            _documentStatus.value = status
+                        } catch (e: JSONException) {
+                            Log.e("API Response", "Error parsing JSON: ${e.message}")
+                        }
+                    } else {
+                        // Handle error in getting the response
+                    }
+                }
+                if (_documentStatus.value != "DONE") {
+                    delay(4000) // Wait for 4 seconds before next server call to the server
+                }
+            }
+
+            if (result != null) {
+                onCreate(result)
+            }
+        }
+    }
+
     fun onSaveAction(
         entity: EntityValue,
         propValuePairs: List<Pair<Property, String>>
@@ -364,7 +439,7 @@ abstract class ODataViewModel(
             return navigationPropertyName?.let {
                 val navProp = parent.entityType.getProperty(navigationPropertyName)
                 val navValue = parent.getOptionalValue(navProp)
-                if(navProp.isEntityList || navValue == null ) action else null
+                if (navProp.isEntityList || navValue == null) action else null
             }
         } ?: action
     }
@@ -372,7 +447,8 @@ abstract class ODataViewModel(
     fun updateFieldState(
         fieldStateIndex: Int, newValue: String
     ) {
-        val newState = validateFieldState(_odataUIState.value.editorFiledStates[fieldStateIndex], newValue)
+        val newState =
+            validateFieldState(_odataUIState.value.editorFiledStates[fieldStateIndex], newValue)
         _odataUIState.update {
             val newStates = it.editorFiledStates.toMutableStateList()
             newStates[fieldStateIndex] = newState

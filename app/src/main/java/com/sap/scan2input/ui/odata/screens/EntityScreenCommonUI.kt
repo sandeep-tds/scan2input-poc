@@ -1,12 +1,30 @@
 package com.sap.scan2input.ui.odata.screens
 
+import android.Manifest
+import android.app.AlertDialog
+import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.net.Uri
+import android.os.Environment
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Text
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.sp
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import androidx.core.content.FileProvider
 import com.sap.scan2input.R
 import com.sap.scan2input.ui.AlertDialogComponent
 import com.sap.scan2input.ui.odata.ActionItem
@@ -18,6 +36,10 @@ import com.sap.cloud.mobile.fiori.compose.avatar.model.FioriAvatarData
 import com.sap.cloud.mobile.fiori.compose.common.FioriIcon
 import com.sap.cloud.mobile.fiori.compose.common.FioriImage
 import com.sap.cloud.mobile.fiori.compose.objectheader.model.*
+import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @Composable
 fun DeleteEntityWithConfirmation(viewModel: ODataViewModel, confirmState: MutableState<Boolean>) {
@@ -59,7 +81,51 @@ fun getSelectedItemActionsList(
     viewModel: ODataViewModel,
     deleteState: MutableState<Boolean>
 ): List<ActionItem> {
+
     val uiState = viewModel.odataUIState.collectAsState()
+
+    val context = LocalContext.current
+    var imageFile by remember { mutableStateOf<File?>(null) }
+    var imageUri by remember { mutableStateOf<Uri?>(null) }
+
+    val launcher =
+        rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { isSuccess: Boolean ->
+            if (isSuccess) {
+                viewModel.sendDocToDoxService(imageFile!!)
+
+                // You can define better experiences for the user while the image is being processed on BTP without disrupting the app flow.
+                val alertDialog = AlertDialog.Builder(context)
+                    .setTitle("Processing Image")
+                    .setMessage("Please wait while we extract details from the image. This may take up to 30 seconds. Once complete, the create screen will open with the pre-filled data.")
+                    .setPositiveButton("OK", null)
+                    .create()
+                alertDialog.show()
+            } else {
+                // Handle image capture failure
+            }
+        }
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted: Boolean ->
+        if (isGranted) {
+            imageFile = createImageFile(context)
+            imageUri = FileProvider.getUriForFile( // Get URI for the file
+                context,
+                "${context.packageName}.provider",
+                imageFile!!
+            )
+            imageUri?.let { launcher.launch(it) } // Launch with the URI
+        } else {
+            // Permission denied, show a message
+            Toast.makeText(
+                context,
+                "This feature will not work without camera permissions.",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
+    }
+
     return when (uiState.value.selectedItems.size) {
         0 -> listOf(
             ActionItem(
@@ -72,6 +138,14 @@ fun getSelectedItemActionsList(
                 iconRes = R.drawable.ic_sap_icon_refresh,
                 overflowMode = OverflowMode.IF_NECESSARY,
                 doAction = viewModel::refreshEntities
+            ), ActionItem(
+                nameRes = com.sap.cloud.mobile.fiori.compose.R.string.scan_button,
+                iconRes =com.sap.cloud.mobile.fiori.theme.R.drawable.ic_sap_icon_scan,
+                doAction = {
+                    // Request camera permission
+                    permissionLauncher.launch(Manifest.permission.CAMERA)
+                },
+                overflowMode = OverflowMode.IF_NECESSARY
             )
         )
 
@@ -80,6 +154,14 @@ fun getSelectedItemActionsList(
             deleteState
         )
     }
+}
+
+// Helper function to create a Uri for the photo file
+fun createImageFile(context: Context): File {
+    val timeStamp = SimpleDateFormat("yyyy_MM_dd_HH_mm_ss", Locale.getDefault()).format(Date())
+    val imageFileName = "DOX_POC_" + timeStamp + "_"
+    val storageDir = context.getExternalFilesDir(Environment.DIRECTORY_PICTURES)
+    return File.createTempFile(imageFileName, ".jpg", storageDir)
 }
 
 @Composable
